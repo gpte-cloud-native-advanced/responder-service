@@ -23,6 +23,9 @@ public class ResponderService {
     @Inject
     ResponderRepository repository;
 
+    @Inject
+    EventPublisher eventPublisher;
+
     @Transactional
     public ResponderStats getResponderStats() {
         return new ResponderStats(repository.activeRespondersCount(), repository.enrolledRespondersCount());
@@ -78,16 +81,7 @@ public class ResponderService {
 
         ResponderEntity entity = fromResponder(responder);
         repository.create(entity);
-
-        //TODO: outgoing kafka message
-//        Message<RespondersCreatedEvent> message = new Message.Builder<>("RespondersCreatedEvent", "ResponderService",
-//                new RespondersCreatedEvent.Builder(new Long[]{entity.getId()}).build()).build();
-//
-//        ListenableFuture<SendResult<String, Message<?>>> future = kafkaTemplate.send(respondersCreatedDestination, "RespondersCreated", message);
-//        future.addCallback(
-//                result -> log.debug("Sent 'RespondersCreatedEvent' message for responder " + entity.getId()),
-//                ex -> log.error("Error sending 'RespondersCreatedEvent' message", ex));
-
+        eventPublisher.responderCreated(entity.getId());
         return toResponder(entity);
     }
 
@@ -98,14 +92,7 @@ public class ResponderService {
                 .map(re -> repository.create(re).getId())
                 .collect(Collectors.toList());
 
-        //TODO: outgoing kafka message
-//        Message<RespondersCreatedEvent> message = new Message.Builder<>("RespondersCreatedEvent", "ResponderService",
-//                new RespondersCreatedEvent.Builder(responderIds.toArray(new Long[0])).build()).build();
-//
-//        ListenableFuture<SendResult<String, Message<?>>> future = kafkaTemplate.send(respondersCreatedDestination, "RespondersCreated", message);
-//        future.addCallback(
-//                result -> log.debug("Sent 'RespondersCreatedEvent' message for " + responderIds.size() +" responders created"),
-//                ex -> log.error("Error sending 'RespondersCreatedEvent' message", ex));
+        eventPublisher.respondersCreated(responderIds);
     }
 
     @Transactional
@@ -184,14 +171,7 @@ public class ResponderService {
         List<Long> responderIds = repository.nonPersonResponders().stream().map(ResponderEntity::getId).collect(Collectors.toList());
         repository.clear();
 
-        //TODO: outgoing Kafka message
-//        Message<RespondersDeletedEvent> message = new Message.Builder<>("RespondersDeletedEvent", "ResponderService",
-//                new RespondersDeletedEvent.Builder(responderIds.toArray(new Long[0])).build()).build();
-//
-//        ListenableFuture<SendResult<String, Message<?>>> future = kafkaTemplate.send(respondersDeletedDestination, "RespondersDeleted", message);
-//        future.addCallback(
-//                result -> log.debug("Sent 'RespondersDeletedEvent' message for " + responderIds.size() +" responders deleted"),
-//                ex -> log.error("Error sending 'RespondersDeletedEvent' message", ex));
+        eventPublisher.respondersDeleted(responderIds);
     }
 
 }

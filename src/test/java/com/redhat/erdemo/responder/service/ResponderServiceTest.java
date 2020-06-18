@@ -44,6 +44,9 @@ public class ResponderServiceTest {
     @InjectMock
     ResponderRepository responderRepository;
 
+    @InjectMock
+    EventPublisher eventPublisher;
+
     @Captor
     private ArgumentCaptor<ResponderEntity> entityCaptor;
 
@@ -502,6 +505,8 @@ public class ResponderServiceTest {
         assertThat(created.isAvailable(), equalTo(true));
         assertThat(created.isPerson(), equalTo(true));
         assertThat(created.isEnrolled(), equalTo(true));
+
+        verify(eventPublisher).responderCreated(100L);
     }
 
     @Test
@@ -548,6 +553,8 @@ public class ResponderServiceTest {
         assertThat(responderEntities.size(), equalTo(2));
         assertThat(responderEntities.get(0).getName(), equalTo("John Doe"));
         assertThat(responderEntities.get(1).getName(), equalTo("John Foo"));
+
+        verify(eventPublisher).respondersCreated(Arrays.asList(1L, 2L));
     }
 
     @Test
@@ -777,6 +784,7 @@ public class ResponderServiceTest {
         responderService.clear();
         verify(responderRepository).nonPersonResponders();
         verify(responderRepository).clear();
+        verify(eventPublisher).respondersDeleted(Arrays.asList(1L, 2L));
     }
 
     private void setField(Object targetObject, String name, Object value) {
