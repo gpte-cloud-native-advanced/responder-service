@@ -12,6 +12,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import com.redhat.erdemo.responder.model.Responder;
@@ -38,7 +40,7 @@ import org.mockito.Captor;
 import org.mockito.Mockito;
 
 @QuarkusTest
-public class ResponderUpdateCommandTest {
+public class ResponderUpdateCommandSourceTest {
 
     @Inject
     ResponderUpdateCommandSource source;
@@ -67,7 +69,7 @@ public class ResponderUpdateCommandTest {
     }
 
     @Test
-    void testProcessMessage() {
+    void testProcessMessage() throws ExecutionException, InterruptedException {
         String json = "{\"messageType\" : \"UpdateResponderCommand\"," +
                 "\"id\" : \"messageId\"," +
                 "\"invokingService\" : \"messageSender\"," +
@@ -95,7 +97,8 @@ public class ResponderUpdateCommandTest {
 
         when(responderService.updateResponder(any(Responder.class))).thenReturn(new ImmutableTriple<>(true, "ok", updated));
 
-        source.onMessage(toRecord("1", json));
+        CompletionStage<CompletionStage<Void>> c =  source.onMessage(toRecord("1", json));
+        c.toCompletableFuture().get();
 
         verify(responderService).updateResponder(responderCaptor.capture());
         Responder captured = responderCaptor.getValue();
@@ -119,7 +122,7 @@ public class ResponderUpdateCommandTest {
     }
 
     @Test
-    public void testProcessMessageUpdateResponderNoIncidentIdHeader() {
+    public void testProcessMessageUpdateResponderNoIncidentIdHeader() throws ExecutionException, InterruptedException {
 
         String json = "{\"messageType\" : \"UpdateResponderCommand\"," +
                 "\"id\" : \"messageId\"," +
@@ -144,7 +147,8 @@ public class ResponderUpdateCommandTest {
                 .build();
         when(responderService.updateResponder(any(Responder.class))).thenReturn(new ImmutableTriple<>(true, "ok", updated));
 
-        source.onMessage(toRecord("1", json));
+        CompletionStage<CompletionStage<Void>> c =  source.onMessage(toRecord("1", json));
+        c.toCompletableFuture().get();
 
         verify(responderService).updateResponder(responderCaptor.capture());
         Responder captured = responderCaptor.getValue();
@@ -163,7 +167,7 @@ public class ResponderUpdateCommandTest {
     }
 
     @Test
-    public void testProcessMessageWrongMessageType() {
+    public void testProcessMessageWrongMessageType() throws ExecutionException, InterruptedException {
 
         String json = "{\"messageType\":\"WrongType\"," +
                 "\"id\":\"messageId\"," +
@@ -172,7 +176,8 @@ public class ResponderUpdateCommandTest {
                 "\"body\":{} " +
                 "}";
 
-        source.onMessage(toRecord("1", json));
+        CompletionStage<CompletionStage<Void>> c =  source.onMessage(toRecord("1", json));
+        c.toCompletableFuture().get();
 
         verify(responderService, never()).updateResponder(any(Responder.class));
         verify(eventPublisher, never()).responderUpdated(any(Triple.class), any(Map.class));
@@ -180,11 +185,12 @@ public class ResponderUpdateCommandTest {
     }
 
     @Test
-    public void testProcessMessageWrongMessage() {
+    public void testProcessMessageWrongMessage() throws ExecutionException, InterruptedException {
         String json = "{\"field1\":\"value1\"," +
                 "\"field2\":\"value2\"}";
 
-        source.onMessage(toRecord("1", json));
+        CompletionStage<CompletionStage<Void>> c =  source.onMessage(toRecord("1", json));
+        c.toCompletableFuture().get();
 
         verify(responderService, never()).updateResponder(any(Responder.class));
         verify(eventPublisher, never()).responderUpdated(any(Triple.class), any(Map.class));
@@ -212,7 +218,7 @@ public class ResponderUpdateCommandTest {
 
         @Override
         public void commit(Handler<AsyncResult<Void>> completionHandler) {
-            ResponderUpdateCommandTest.this.messageAck = true;
+            ResponderUpdateCommandSourceTest.this.messageAck = true;
 
         }
     }

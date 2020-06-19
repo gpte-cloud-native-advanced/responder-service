@@ -1,6 +1,7 @@
 package com.redhat.erdemo.responder.consumer;
 
 import java.math.BigDecimal;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -24,25 +25,27 @@ public class ResponderLocationUpdatedSource {
 
     @Incoming("responder-update-location")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public CompletionStage<IncomingKafkaRecord<String, String>> onMessage(IncomingKafkaRecord<String, String> message) {
-        try {
-            JsonObject json = new JsonObject(message.getPayload());
-            String responderId = json.getString("responderId");
-            BigDecimal lat = json.getDouble("lat") != null ? BigDecimal.valueOf(json.getDouble("lat")) : null;
-            BigDecimal lon = json.getDouble("lon") != null ? BigDecimal.valueOf(json.getDouble("lon")) : null;
-            String status = json.getString("status");
-            if (responderId != null && "MOVING".equalsIgnoreCase(status)) {
-                Responder responder = new Responder.Builder(responderId).latitude(lat).longitude(lon).build();
-                log.debug("Processing 'ResponderUpdateLocationEvent' message for responder '" + responder.getId()
-                        + "' from topic:partition:offset " + message.getTopic() + ":" + message.getPartition()
-                        + ":" + message.getOffset());
-                responderService.updateResponderLocation(responder);
-            }
+    public CompletionStage<CompletionStage<Void>> onMessage(IncomingKafkaRecord<String, String> message) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                JsonObject json = new JsonObject(message.getPayload());
+                String responderId = json.getString("responderId");
+                BigDecimal lat = json.getDouble("lat") != null ? BigDecimal.valueOf(json.getDouble("lat")) : null;
+                BigDecimal lon = json.getDouble("lon") != null ? BigDecimal.valueOf(json.getDouble("lon")) : null;
+                String status = json.getString("status");
+                if (responderId != null && "MOVING".equalsIgnoreCase(status)) {
+                    Responder responder = new Responder.Builder(responderId).latitude(lat).longitude(lon).build();
+                    log.debug("Processing 'ResponderUpdateLocationEvent' message for responder '" + responder.getId()
+                            + "' from topic:partition:offset " + message.getTopic() + ":" + message.getPartition()
+                            + ":" + message.getOffset());
+                    responderService.updateResponderLocation(responder);
+                }
 
-        } catch (Exception e) {
-            log.warn("Unexpected message structure: " + message.getPayload());
-        }
-        return message.ack().toCompletableFuture().thenApply(x -> message);
+            } catch (Exception e) {
+                log.warn("Unexpected message structure: " + message.getPayload());
+            }
+            return message.ack();
+        });
     }
 
 }

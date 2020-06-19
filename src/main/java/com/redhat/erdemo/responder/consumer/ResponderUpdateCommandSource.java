@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
@@ -36,13 +37,16 @@ public class ResponderUpdateCommandSource {
 
     @Incoming("responder-command")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public CompletionStage<IncomingKafkaRecord<String, String>> onMessage(IncomingKafkaRecord<String, String> message) {
-        try {
-            acceptMessage(message.getPayload()).ifPresent(j -> processMessage(j, message.getTopic(), message.getPartition(), message.getOffset()));
-        } catch (Exception e) {
-            log.error("Error processing msg " + message.getPayload(), e);
-        }
-        return message.ack().toCompletableFuture().thenApply(x -> message);
+    public CompletionStage<CompletionStage<Void>> onMessage(IncomingKafkaRecord<String, String> message) {
+
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                acceptMessage(message.getPayload()).ifPresent(j -> processMessage(j, message.getTopic(), message.getPartition(), message.getOffset()));
+            } catch (Exception e) {
+                log.error("Error processing msg " + message.getPayload(), e);
+            };
+            return message.ack();
+        });
     }
 
     private void processMessage(JsonObject json, String topic, int partition, long offset) {

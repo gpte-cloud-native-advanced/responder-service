@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import com.redhat.erdemo.responder.model.Responder;
@@ -51,7 +53,7 @@ public class ResponderLocationUpdatedSourceTest {
     }
 
     @Test
-    void testResponderLocationUpdated() {
+    void testResponderLocationUpdated() throws ExecutionException, InterruptedException {
         String json = "{\n" +
                 "  \"responderId\": \"64\",\n" +
                 "  \"missionId\": \"f5a9bc5e-408c-4f86-8592-6f67bb73c5fd\",\n" +
@@ -63,7 +65,9 @@ public class ResponderLocationUpdatedSourceTest {
                 "  \"continue\": true\n" +
                 "}";
 
-        source.onMessage(toRecord("64", json));
+
+        CompletionStage<CompletionStage<Void>> c =  source.onMessage(toRecord("64", json));
+        c.toCompletableFuture().get();
 
         verify(responderService).updateResponderLocation(responderCaptor.capture());
         Responder captured = responderCaptor.getValue();
@@ -84,7 +88,7 @@ public class ResponderLocationUpdatedSourceTest {
     }
 
     @Test
-    public void testResponderLocationUpdateEventStatusNotMoving() {
+    public void testResponderLocationUpdateEventStatusNotMoving() throws ExecutionException, InterruptedException {
         String json = "{\n" +
                 "  \"responderId\": \"64\",\n" +
                 "  \"missionId\": \"f5a9bc5e-408c-4f86-8592-6f67bb73c5fd\",\n" +
@@ -96,14 +100,15 @@ public class ResponderLocationUpdatedSourceTest {
                 "  \"continue\": true\n" +
                 "}";
 
-        source.onMessage(toRecord("64", json));
+        CompletionStage<CompletionStage<Void>> c =  source.onMessage(toRecord("64", json));
+        c.toCompletableFuture().get();
 
         verify(responderService, never()).updateResponderLocation(any(Responder.class));
         assertThat(messageAck, equalTo(true));
     }
 
     @Test
-    public void testResponderLocationUpdateEventWrongMessage() {
+    public void testResponderLocationUpdateEventWrongMessage() throws ExecutionException, InterruptedException {
         String json = "{\n" +
                 "  \"missionId\": \"f5a9bc5e-408c-4f86-8592-6f67bb73c5fd\",\n" +
                 "  \"incidentId\": \"5d9b2d3a-136f-414f-96ba-1b2a445fee5d\",\n" +
@@ -114,7 +119,8 @@ public class ResponderLocationUpdatedSourceTest {
                 "  \"continue\": true\n" +
                 "}";
 
-        source.onMessage(toRecord("64", json));
+        CompletionStage<CompletionStage<Void>> c =  source.onMessage(toRecord("64", json));
+        c.toCompletableFuture().get();
 
         verify(responderService, never()).updateResponderLocation(any(Responder.class));
         assertThat(messageAck, equalTo(true));
