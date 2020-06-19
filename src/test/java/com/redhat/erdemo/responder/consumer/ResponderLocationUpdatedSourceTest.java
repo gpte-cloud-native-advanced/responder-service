@@ -1,0 +1,149 @@
+package com.redhat.erdemo.responder.consumer;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.MockitoAnnotations.initMocks;
+
+import javax.inject.Inject;
+
+import com.redhat.erdemo.responder.model.Responder;
+import com.redhat.erdemo.responder.service.ResponderService;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectMock;
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.kafka.client.consumer.KafkaReadStream;
+import io.vertx.kafka.client.consumer.impl.KafkaConsumerImpl;
+import io.vertx.kafka.client.consumer.impl.KafkaConsumerRecordImpl;
+import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
+import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+
+@QuarkusTest
+public class ResponderLocationUpdatedSourceTest {
+
+    @InjectMock
+    ResponderService responderService;
+
+    @Inject
+    ResponderLocationUpdatedSource source;
+
+    @Captor
+    ArgumentCaptor<Responder> responderCaptor;
+
+    boolean messageAck = false;
+
+    @BeforeEach
+    void init() {
+        initMocks(this);
+        messageAck = false;
+    }
+
+    @Test
+    void testResponderLocationUpdated() {
+        String json = "{\n" +
+                "  \"responderId\": \"64\",\n" +
+                "  \"missionId\": \"f5a9bc5e-408c-4f86-8592-6f67bb73c5fd\",\n" +
+                "  \"incidentId\": \"5d9b2d3a-136f-414f-96ba-1b2a445fee5d\",\n" +
+                "  \"status\": \"MOVING\",\n" +
+                "  \"lat\": 34.1701,\n" +
+                "  \"lon\": -77.9482,\n" +
+                "  \"human\": false,\n" +
+                "  \"continue\": true\n" +
+                "}";
+
+        source.onMessage(toRecord("64", json));
+
+        verify(responderService).updateResponderLocation(responderCaptor.capture());
+        Responder captured = responderCaptor.getValue();
+        assertThat(captured, notNullValue());
+        assertThat(captured.getId(), equalTo("64"));
+        assertThat(captured.getLatitude().toString(), equalTo("34.1701"));
+        assertThat(captured.getLongitude().toString(), equalTo("-77.9482"));
+        assertThat(captured.getName(), nullValue());
+        assertThat(captured.getPhoneNumber(), nullValue());
+        assertThat(captured.isMedicalKit(), nullValue());
+        assertThat(captured.getBoatCapacity(), nullValue());
+        assertThat(captured.isAvailable(), nullValue());
+        assertThat(captured.isEnrolled(), nullValue());
+        assertThat(captured.isPerson(), nullValue());
+
+        assertThat(messageAck, equalTo(true));
+
+    }
+
+    @Test
+    public void testResponderLocationUpdateEventStatusNotMoving() {
+        String json = "{\n" +
+                "  \"responderId\": \"64\",\n" +
+                "  \"missionId\": \"f5a9bc5e-408c-4f86-8592-6f67bb73c5fd\",\n" +
+                "  \"incidentId\": \"5d9b2d3a-136f-414f-96ba-1b2a445fee5d\",\n" +
+                "  \"status\": \"DROPPED\",\n" +
+                "  \"lat\": 34.1701,\n" +
+                "  \"lon\": -77.9482,\n" +
+                "  \"human\": false,\n" +
+                "  \"continue\": true\n" +
+                "}";
+
+        source.onMessage(toRecord("64", json));
+
+        verify(responderService, never()).updateResponderLocation(any(Responder.class));
+        assertThat(messageAck, equalTo(true));
+    }
+
+    @Test
+    public void testResponderLocationUpdateEventWrongMessage() {
+        String json = "{\n" +
+                "  \"missionId\": \"f5a9bc5e-408c-4f86-8592-6f67bb73c5fd\",\n" +
+                "  \"incidentId\": \"5d9b2d3a-136f-414f-96ba-1b2a445fee5d\",\n" +
+                "  \"status\": \"MOVING\",\n" +
+                "  \"lat\": 34.1701,\n" +
+                "  \"lon\": -77.9482,\n" +
+                "  \"human\": false,\n" +
+                "  \"continue\": true\n" +
+                "}";
+
+        source.onMessage(toRecord("64", json));
+
+        verify(responderService, never()).updateResponderLocation(any(Responder.class));
+        assertThat(messageAck, equalTo(true));
+    }
+
+    private IncomingKafkaRecord<String, String> toRecord(String key, String payload) {
+
+        MockKafkaConsumer<String, String> mc = new MockKafkaConsumer<>();
+        KafkaConsumer<String, String> c = new KafkaConsumer<>(mc);
+        ConsumerRecord<String, String> cr = new ConsumerRecord<>("topic", 1, 100, key, payload);
+        KafkaConsumerRecord<String, String> kcr = new KafkaConsumerRecord<>(new KafkaConsumerRecordImpl<>(cr));
+        return new IncomingKafkaRecord<String, String>(c, kcr);
+    }
+
+    private class MockKafkaConsumer<K, V> extends KafkaConsumerImpl<K, V> {
+
+        public MockKafkaConsumer() {
+            super(new KafkaReadStreamImpl<K, V>(null, null));
+        }
+
+        public MockKafkaConsumer(KafkaReadStream<K, V> stream) {
+            super(stream);
+        }
+
+        @Override
+        public void commit(Handler<AsyncResult<Void>> completionHandler) {
+            ResponderLocationUpdatedSourceTest.this.messageAck = true;
+
+        }
+    }
+
+}

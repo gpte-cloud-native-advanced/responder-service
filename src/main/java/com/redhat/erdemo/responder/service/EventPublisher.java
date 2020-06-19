@@ -7,13 +7,13 @@ import javax.enterprise.context.ApplicationScoped;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.erdemo.responder.message.Message;
+import com.redhat.erdemo.responder.message.ResponderUpdatedEvent;
 import com.redhat.erdemo.responder.message.RespondersCreatedEvent;
 import com.redhat.erdemo.responder.message.RespondersDeletedEvent;
 import com.redhat.erdemo.responder.model.Responder;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
@@ -47,7 +47,11 @@ public class EventPublisher {
     }
 
     public void responderUpdated(Triple<Boolean, String, Responder> status, Map<String, String> context) {
-        throw new NotImplementedException("Not implemented");
+        Message.Builder<ResponderUpdatedEvent> builder = new Message.Builder<>("ResponderUpdatedEvent", "ResponderService",
+                new ResponderUpdatedEvent.Builder(status.getLeft() ? "success" : "error", status.getRight())
+                        .statusMessage(status.getMiddle()).build());
+        context.forEach(builder::header);
+        processor.onNext(ImmutablePair.of(status.getRight().getId(), builder.build()));
     }
 
     @Outgoing("responder-event")

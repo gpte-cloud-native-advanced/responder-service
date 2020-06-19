@@ -6,14 +6,19 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import javax.enterprise.inject.Any;
 import javax.inject.Inject;
 
+import com.redhat.erdemo.responder.model.Responder;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.reactive.messaging.connectors.InMemoryConnector;
 import io.smallrye.reactive.messaging.connectors.InMemorySink;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord;
+import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +43,7 @@ public class EventPublisherTest {
         InMemorySink<String> results = connector.sink("responder-event");
 
         eventPublisher.responderCreated(1L);
+
         assertThat(results.received().size(), equalTo(1));
         Message<String> message = results.received().get(0);
         assertThat(message, instanceOf(OutgoingKafkaRecord.class));
@@ -59,6 +65,7 @@ public class EventPublisherTest {
         InMemorySink<String> results = connector.sink("responder-event");
 
         eventPublisher.respondersCreated(Arrays.asList(1L, 2L, 3L));
+
         assertThat(results.received().size(), equalTo(1));
         Message<String> message = results.received().get(0);
         assertThat(message, instanceOf(OutgoingKafkaRecord.class));
@@ -82,6 +89,7 @@ public class EventPublisherTest {
         InMemorySink<String> results = connector.sink("responder-event");
 
         eventPublisher.respondersDeleted(Arrays.asList(1L, 2L, 3L));
+
         assertThat(results.received().size(), equalTo(1));
         Message<String> message = results.received().get(0);
         assertThat(message, instanceOf(OutgoingKafkaRecord.class));
@@ -97,6 +105,56 @@ public class EventPublisherTest {
         assertThat(value, jsonPartEquals("body.responders[0]", 1));
         assertThat(value, jsonPartEquals("body.responders[1]", 2));
         assertThat(value, jsonPartEquals("body.responders[2]", 3));
+    }
+
+    @Test
+    void testResponderUpdated() {
+
+        InMemorySink<String> results = connector.sink("responder-event");
+
+        Responder responder1 = new Responder.Builder("1")
+                .name("John Doe")
+                .phoneNumber("111-222-333")
+                .latitude(new BigDecimal("30.12345"))
+                .longitude(new BigDecimal("-70.98765"))
+                .boatCapacity(3)
+                .medicalKit(true)
+                .available(true)
+                .person(false)
+                .enrolled(true)
+                .build();
+
+        Map<String, String> context = new HashMap<>();
+        context.put("incidentId", "qwerty");
+
+        eventPublisher.responderUpdated(ImmutableTriple.of(true, "message", responder1), context);
+
+        Message<String> message = results.received().get(0);
+        assertThat(results.received().size(), equalTo(1));
+        assertThat(message, instanceOf(OutgoingKafkaRecord.class));
+        String value = message.getPayload();
+        String key = ((OutgoingKafkaRecord<String, String>)message).getKey();
+        assertThat(key, equalTo("1"));
+        assertThat(value, jsonNodePresent("id"));
+        assertThat(value, jsonPartEquals("messageType", "ResponderUpdatedEvent"));
+        assertThat(value, jsonPartEquals("invokingService", "ResponderService"));
+        assertThat(value, jsonNodePresent("timestamp"));
+        assertThat(value, jsonNodePresent("header"));
+        assertThat(value, jsonPartEquals("header.incidentId", "qwerty"));
+        assertThat(value, jsonNodePresent("body"));
+        assertThat(value, jsonPartEquals("body.status", "success"));
+        assertThat(value, jsonPartEquals("body.statusMessage", "message"));
+        assertThat(value, jsonNodePresent("body.responder"));
+        assertThat(value, jsonPartEquals("body.responder.id", "\"1\""));
+        assertThat(value, jsonPartEquals("body.responder.name", "John Doe"));
+        assertThat(value, jsonPartEquals("body.responder.phoneNumber", "111-222-333"));
+        assertThat(value, jsonPartEquals("body.responder.latitude", 30.12345));
+        assertThat(value, jsonPartEquals("body.responder.longitude", -70.98765));
+        assertThat(value, jsonPartEquals("body.responder.boatCapacity", 3));
+        assertThat(value, jsonPartEquals("body.responder.medicalKit", true));
+        assertThat(value, jsonPartEquals("body.responder.available", true));
+        assertThat(value, jsonPartEquals("body.responder.enrolled", true));
+        assertThat(value, jsonPartEquals("body.responder.person", false));
     }
 
 }
