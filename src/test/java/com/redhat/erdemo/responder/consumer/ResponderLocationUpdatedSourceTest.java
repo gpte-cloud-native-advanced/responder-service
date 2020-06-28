@@ -20,6 +20,7 @@ import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.kafka.client.consumer.KafkaReadStream;
 import io.vertx.kafka.client.consumer.impl.KafkaConsumerImpl;
 import io.vertx.kafka.client.consumer.impl.KafkaConsumerRecordImpl;
@@ -148,7 +149,9 @@ public class ResponderLocationUpdatedSourceTest {
         @Override
         public void commit(Handler<AsyncResult<Void>> completionHandler) {
             ResponderLocationUpdatedSourceTest.this.messageAck = true;
-
+            Promise<Void> future = Promise.promise();
+            future.future().onComplete(completionHandler);
+            future.complete(null);
         }
     }
 
