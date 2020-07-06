@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.erdemo.responder.message.Message;
 import com.redhat.erdemo.responder.message.ResponderUpdatedEvent;
 import com.redhat.erdemo.responder.message.RespondersCreatedEvent;
@@ -14,6 +12,7 @@ import com.redhat.erdemo.responder.model.Responder;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.vertx.core.json.Json;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
@@ -61,14 +60,7 @@ public class EventPublisher {
 
     private org.eclipse.microprofile.reactive.messaging.Message<String> toMessage(Pair<String, Message<?>> pair) {
 
-        String json = "";
-        try {
-            json = new ObjectMapper().writeValueAsString(pair.getRight());
-        } catch (JsonProcessingException e) {
-            log.error("Error serializing message to String", e);
-        }
-
-        return KafkaRecord.of(pair.getLeft(), json);
+        return KafkaRecord.of(pair.getLeft(), Json.encode(pair.getRight()));
     }
 
 
