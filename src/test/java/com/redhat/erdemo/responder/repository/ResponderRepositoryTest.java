@@ -1253,7 +1253,8 @@ public class ResponderRepositoryTest {
      *      A call is made to `clear`
      *
      *    Then:
-     *      All the ResponderEntity records with `person` equals false are deleted from the database
+     *      All the ResponderEntity records with `person` equals false have `available` set to false and `enrolled`
+     *          set to false
      *      All the ResponderEntity records with `person` equals true have the `currentPositionLatitude` and
      *          `currentPositionLongitude` set to null, `available` set to true, `enrolled` set to false.
      *
@@ -1305,10 +1306,14 @@ public class ResponderRepositoryTest {
         });
 
         ResponderEntity result1 = template.execute(() -> responderRepository.findById(responder1.getId()));
-        assertThat(result1, nullValue());
+        assertThat(result1, notNullValue());
+        assertThat(result1.isAvailable(), is(false));
+        assertThat(result1.isEnrolled(), is(false));
 
         ResponderEntity result2 = template.execute(() -> responderRepository.findById(responder2.getId()));
-        assertThat(result2, nullValue());
+        assertThat(result2, notNullValue());
+        assertThat(result2.isAvailable(), is(false));
+        assertThat(result2.isEnrolled(), is(false));
 
         ResponderEntity result3 = template.execute(() -> responderRepository.findById(responder3.getId()));
         assertThat(result3, notNullValue());
