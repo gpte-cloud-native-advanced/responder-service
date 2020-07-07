@@ -1329,6 +1329,83 @@ public class ResponderRepositoryTest {
      *
      *    When:
      *      There are ResponderEntity records in the database
+     *      There are ResponderEntity records with field `available` set to true in the database
+     *      There are ResponderEntity records with field `enrolled` set to false in the database
+     *      There are ResponderEntity records with field `person` set to true in the database
+     *      A call is made to `resetPersonsDeleteBots`
+     *
+     *    Then:
+     *      All the ResponderEntity records with `person` equals false are deleted from the database
+     *      All the ResponderEntity records with `person` equals true have the `currentPositionLatitude` and
+     *          `currentPositionLongitude` set to null, `available` set to true, `enrolled` set to false.
+     *
+     */
+    @Test
+    void testResetPersonsDeleteBots() {
+        ResponderEntity responder1 = new ResponderEntity.Builder()
+                .name("John Foo")
+                .phoneNumber("999-888-777")
+                .currentPositionLatitude(new BigDecimal("35.12345"))
+                .currentPositionLongitude(new BigDecimal("-75.98765"))
+                .boatCapacity(2)
+                .medicalKit(true)
+                .person(false)
+                .available(false)
+                .enrolled(true)
+                .build();
+
+        ResponderEntity responder2 = new ResponderEntity.Builder()
+                .name("John Foo II")
+                .phoneNumber("999-888-777")
+                .currentPositionLatitude(new BigDecimal("35.12345"))
+                .currentPositionLongitude(new BigDecimal("-75.98765"))
+                .boatCapacity(2)
+                .medicalKit(true)
+                .person(false)
+                .available(false)
+                .enrolled(true)
+                .build();
+
+        ResponderEntity responder3 = new ResponderEntity.Builder()
+                .name("John Foo III")
+                .phoneNumber("999-888-777")
+                .currentPositionLatitude(new BigDecimal("35.12345"))
+                .currentPositionLongitude(new BigDecimal("-75.98765"))
+                .boatCapacity(2)
+                .medicalKit(true)
+                .person(true)
+                .available(false)
+                .enrolled(true)
+                .build();
+
+        createResponders(Arrays.asList(responder1, responder2, responder3));
+
+        TransactionTemplate template = new TransactionTemplate(transaction);
+        template.execute(() -> {
+            responderRepository.resetPersonsDeleteBots();
+            return null;
+        });
+
+        ResponderEntity result1 = template.execute(() -> responderRepository.findById(responder1.getId()));
+        assertThat(result1, nullValue());
+
+        ResponderEntity result2 = template.execute(() -> responderRepository.findById(responder2.getId()));
+        assertThat(result2, nullValue());
+
+        ResponderEntity result3 = template.execute(() -> responderRepository.findById(responder3.getId()));
+        assertThat(result3, notNullValue());
+        assertThat(result3.isEnrolled(), equalTo(false));
+        assertThat(result3.isAvailable(), equalTo(true));
+        assertThat(result3.isPerson(), equalTo(true));
+        assertThat(result3.getCurrentPositionLatitude(), nullValue());
+        assertThat(result3.getCurrentPositionLongitude(), nullValue());
+    }
+
+    /**
+     *  Test description:
+     *
+     *    When:
+     *      There are ResponderEntity records in the database
      *      A call is made to `deleteAll`
      *
      *    Then:

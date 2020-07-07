@@ -626,7 +626,25 @@ public class ResponderResourceTest {
         given().when().post("/responders/clear")
                 .then().assertThat().statusCode(200).body(equalTo(""));
 
-        verify(responderService).clear();
+        verify(responderService).clear(false);
+    }
+
+    @Test
+    void testClearEndpointDeleteBots() {
+
+        given().when().post("/responders/clear?delete=bots")
+                .then().assertThat().statusCode(200).body(equalTo(""));
+
+        verify(responderService).clear(true);
+    }
+
+    @Test
+    void testClearEndpointDelete() {
+
+        given().when().post("/responders/clear?delete=randomValue")
+                .then().assertThat().statusCode(200).body(equalTo(""));
+
+        verify(responderService).clear(false);
     }
 
     @Test
@@ -637,14 +655,4 @@ public class ResponderResourceTest {
 
         verify(responderService).deleteAll();
     }
-
-    @Test
-    void testClearEndpointDelete() {
-
-        given().when().post("/responders/clear?delete=randomValue")
-                .then().assertThat().statusCode(200).body(equalTo(""));
-
-        verify(responderService).clear();
-    }
-
 }
