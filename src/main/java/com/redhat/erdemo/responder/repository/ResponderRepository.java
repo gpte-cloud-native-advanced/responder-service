@@ -120,6 +120,11 @@ public class ResponderRepository {
         entityManager.flush();
     }
 
+    public void deleteAll() {
+        entityManager.createNamedQuery("Responder.deleteAll").executeUpdate();
+        entityManager.flush();
+    }
+
     public Long enrolledRespondersCount() {
         return (Long) entityManager.createNamedQuery("Responder.countEnrolled").getSingleResult();
     }

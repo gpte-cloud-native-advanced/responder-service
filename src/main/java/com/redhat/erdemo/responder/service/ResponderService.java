@@ -174,4 +174,10 @@ public class ResponderService {
         eventPublisher.respondersDeleted(responderIds);
     }
 
+    @Transactional
+    public void deleteAll() {
+        log.info("Delete All called");
+        repository.deleteAll();
+    }
+
 }

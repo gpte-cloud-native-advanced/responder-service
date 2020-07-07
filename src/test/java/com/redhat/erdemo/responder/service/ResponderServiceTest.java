@@ -787,6 +787,13 @@ public class ResponderServiceTest {
         verify(eventPublisher).respondersDeleted(Arrays.asList(1L, 2L));
     }
 
+    @Test
+    public void testDeleteAll() {
+
+        responderService.deleteAll();
+        verify(responderRepository).deleteAll();
+    }
+
     private void setField(Object targetObject, String name, Object value) {
 
         Class<?> targetClass = targetObject.getClass();

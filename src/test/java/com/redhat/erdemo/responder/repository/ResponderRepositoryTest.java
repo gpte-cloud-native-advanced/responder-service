@@ -1324,6 +1324,67 @@ public class ResponderRepositoryTest {
      *
      *    When:
      *      There are ResponderEntity records in the database
+     *      A call is made to `deleteAll`
+     *
+     *    Then:
+     *      All the ResponderEntity records are deleted from the database
+     *
+     */
+    @Test
+    void testDeleteAll() {
+        ResponderEntity responder1 = new ResponderEntity.Builder()
+                .name("John Foo")
+                .phoneNumber("999-888-777")
+                .currentPositionLatitude(new BigDecimal("35.12345"))
+                .currentPositionLongitude(new BigDecimal("-75.98765"))
+                .boatCapacity(2)
+                .medicalKit(true)
+                .person(false)
+                .available(false)
+                .enrolled(true)
+                .build();
+
+        ResponderEntity responder2 = new ResponderEntity.Builder()
+                .name("John Foo II")
+                .phoneNumber("999-888-777")
+                .currentPositionLatitude(new BigDecimal("35.12345"))
+                .currentPositionLongitude(new BigDecimal("-75.98765"))
+                .boatCapacity(2)
+                .medicalKit(true)
+                .person(false)
+                .available(false)
+                .enrolled(true)
+                .build();
+
+        ResponderEntity responder3 = new ResponderEntity.Builder()
+                .name("John Foo III")
+                .phoneNumber("999-888-777")
+                .currentPositionLatitude(new BigDecimal("35.12345"))
+                .currentPositionLongitude(new BigDecimal("-75.98765"))
+                .boatCapacity(2)
+                .medicalKit(true)
+                .person(true)
+                .available(false)
+                .enrolled(true)
+                .build();
+
+        createResponders(Arrays.asList(responder1, responder2, responder3));
+
+        TransactionTemplate template = new TransactionTemplate(transaction);
+        template.execute(() -> {
+            responderRepository.deleteAll();
+            return null;
+        });
+
+        List<ResponderEntity> entities = template.execute(() -> responderRepository.allResponders());
+        assertThat(entities.size(), is(equalTo(0)));
+    }
+
+    /**
+     *  Test description:
+     *
+     *    When:
+     *      There are ResponderEntity records in the database
      *      A call is made to `activeRespondersCount`
      *
      *    Then:

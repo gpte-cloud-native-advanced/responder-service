@@ -629,4 +629,22 @@ public class ResponderResourceTest {
         verify(responderService).clear();
     }
 
+    @Test
+    void testClearEndpointDeleteAll() {
+
+        given().when().post("/responders/clear?delete=all")
+                .then().assertThat().statusCode(200).body(equalTo(""));
+
+        verify(responderService).deleteAll();
+    }
+
+    @Test
+    void testClearEndpointDelete() {
+
+        given().when().post("/responders/clear?delete=randomValue")
+                .then().assertThat().statusCode(200).body(equalTo(""));
+
+        verify(responderService).clear();
+    }
+
 }
