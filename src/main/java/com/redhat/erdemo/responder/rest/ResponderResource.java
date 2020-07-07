@@ -142,8 +142,15 @@ public class ResponderResource {
 
     @POST
     @Path("/responders/clear")
-    public Response clear() {
-        responderService.clear();
+    public Response clear(@QueryParam("delete") Optional<String> delete) {
+
+        if (delete.orElse("").equals("all")) {
+            responderService.deleteAll();
+        } else if (delete.orElse("").equals("bots")) {
+            responderService.clear(true);
+        } else {
+            responderService.clear(false);
+        }
         return Response.ok().build();
     }
 

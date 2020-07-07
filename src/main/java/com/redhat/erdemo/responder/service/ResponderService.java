@@ -166,12 +166,22 @@ public class ResponderService {
 
 
     @Transactional
-    public void clear() {
-        log.info("Clear called");
+    public void clear(boolean delete) {
+        log.info("Clear called with delete " + delete);
         List<Long> responderIds = repository.nonPersonResponders().stream().map(ResponderEntity::getId).collect(Collectors.toList());
-        repository.clear();
+        if (!delete) {
+            repository.clear();
+        } else {
+            repository.resetPersonsDeleteBots();
+        }
 
         eventPublisher.respondersDeleted(responderIds);
+    }
+
+    @Transactional
+    public void deleteAll() {
+        log.info("Delete All called");
+        repository.deleteAll();
     }
 
 }

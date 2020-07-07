@@ -29,6 +29,7 @@ import javax.persistence.Version;
         @NamedQuery(name = "Responder.countActive", query = "SELECT COUNT(r.id) FROM ResponderEntity r WHERE r.enrolled = true AND r.available = false"),
         @NamedQuery(name = "Responder.deleteAll", query = "DELETE FROM ResponderEntity"),
         @NamedQuery(name = "Responder.deleteNonPersons", query = "DELETE FROM ResponderEntity r where r.person = false"),
+        @NamedQuery(name = "Responder.clearNonPersons", query = "UPDATE ResponderEntity r SET r.available = false, r.enrolled = false WHERE r.person = false"),
         @NamedQuery(name = "Responder.reset", query = "UPDATE ResponderEntity r SET r.available = true, r.enrolled = false WHERE r.person = false"),
         @NamedQuery(name = "Responder.resetPerson", query = "UPDATE ResponderEntity r SET r.available = true, r.enrolled = false, currentPositionLatitude = null,  currentPositionLongitude = null WHERE r.person = true")
 })

@@ -626,7 +626,33 @@ public class ResponderResourceTest {
         given().when().post("/responders/clear")
                 .then().assertThat().statusCode(200).body(equalTo(""));
 
-        verify(responderService).clear();
+        verify(responderService).clear(false);
     }
 
+    @Test
+    void testClearEndpointDeleteBots() {
+
+        given().when().post("/responders/clear?delete=bots")
+                .then().assertThat().statusCode(200).body(equalTo(""));
+
+        verify(responderService).clear(true);
+    }
+
+    @Test
+    void testClearEndpointDelete() {
+
+        given().when().post("/responders/clear?delete=randomValue")
+                .then().assertThat().statusCode(200).body(equalTo(""));
+
+        verify(responderService).clear(false);
+    }
+
+    @Test
+    void testClearEndpointDeleteAll() {
+
+        given().when().post("/responders/clear?delete=all")
+                .then().assertThat().statusCode(200).body(equalTo(""));
+
+        verify(responderService).deleteAll();
+    }
 }

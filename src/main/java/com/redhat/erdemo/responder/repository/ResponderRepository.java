@@ -115,8 +115,19 @@ public class ResponderRepository {
     }
 
     public void clear() {
+        entityManager.createNamedQuery("Responder.clearNonPersons").executeUpdate();
+        entityManager.createNamedQuery("Responder.resetPerson").executeUpdate();
+        entityManager.flush();
+    }
+
+    public void resetPersonsDeleteBots() {
         entityManager.createNamedQuery("Responder.deleteNonPersons").executeUpdate();
         entityManager.createNamedQuery("Responder.resetPerson").executeUpdate();
+        entityManager.flush();
+    }
+
+    public void deleteAll() {
+        entityManager.createNamedQuery("Responder.deleteAll").executeUpdate();
         entityManager.flush();
     }
 

@@ -781,10 +781,54 @@ public class ResponderServiceTest {
 
         when(responderRepository.nonPersonResponders()).thenReturn(responderEntities);
 
-        responderService.clear();
+        responderService.clear(false);
         verify(responderRepository).nonPersonResponders();
         verify(responderRepository).clear();
         verify(eventPublisher).respondersDeleted(Arrays.asList(1L, 2L));
+    }
+
+    @Test
+    public void testClearDeleteTrue() {
+
+        ResponderEntity re1 = new ResponderEntity.Builder(1L, 0L)
+                .name("John Doe")
+                .phoneNumber("111-222-333")
+                .currentPositionLatitude(new BigDecimal("30.12345"))
+                .currentPositionLongitude(new BigDecimal("-70.98765"))
+                .boatCapacity(3)
+                .medicalKit(true)
+                .available(true)
+                .person(false)
+                .enrolled(true)
+                .build();
+
+        ResponderEntity re2 = new ResponderEntity.Builder(2L, 0L)
+                .name("John Foo")
+                .phoneNumber("111-222-333")
+                .currentPositionLatitude(new BigDecimal("30.12345"))
+                .currentPositionLongitude(new BigDecimal("-70.98765"))
+                .boatCapacity(3)
+                .medicalKit(true)
+                .available(true)
+                .person(false)
+                .enrolled(true)
+                .build();
+
+        List<ResponderEntity> responderEntities = Arrays.asList(re1, re2);
+
+        when(responderRepository.nonPersonResponders()).thenReturn(responderEntities);
+
+        responderService.clear(true);
+        verify(responderRepository).nonPersonResponders();
+        verify(responderRepository).resetPersonsDeleteBots();
+        verify(eventPublisher).respondersDeleted(Arrays.asList(1L, 2L));
+    }
+
+    @Test
+    public void testDeleteAll() {
+
+        responderService.deleteAll();
+        verify(responderRepository).deleteAll();
     }
 
     private void setField(Object targetObject, String name, Object value) {
