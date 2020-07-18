@@ -54,7 +54,7 @@ public class ResponderUpdateCommandSource {
         Responder responder = fromJson(responderJson);
 
         log.debug("Processing '" + UPDATE_RESPONDER_COMMAND + "' message for responder '" + responder.getId()
-                + "' from topic:partition:offset " + topic + ":" + partition + ":" + offset);
+                + "' from topic:partition:offset " + topic + ":" + partition + ":" + offset +". Message: " + json.toString());
 
         Triple<Boolean, String, Responder> result = responderService.updateResponder(responder);
 

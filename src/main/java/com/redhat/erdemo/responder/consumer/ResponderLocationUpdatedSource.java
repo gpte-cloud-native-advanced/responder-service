@@ -37,7 +37,7 @@ public class ResponderLocationUpdatedSource {
                     Responder responder = new Responder.Builder(responderId).latitude(lat).longitude(lon).build();
                     log.debug("Processing 'ResponderUpdateLocationEvent' message for responder '" + responder.getId()
                             + "' from topic:partition:offset " + message.getTopic() + ":" + message.getPartition()
-                            + ":" + message.getOffset());
+                            + ":" + message.getOffset() + ". Message: " + json.toString());
                     responderService.updateResponderLocation(responder);
                 }
 
