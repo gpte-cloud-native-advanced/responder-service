@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -21,7 +21,10 @@ import com.redhat.erdemo.responder.service.EventPublisher;
 import com.redhat.erdemo.responder.service.ResponderService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.vertx.AsyncResultUni;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -65,7 +68,7 @@ public class ResponderUpdateCommandSourceTest {
 
     @BeforeEach
     void init() {
-        initMocks(this);
+        openMocks(this);
         messageAck = false;
     }
 
@@ -204,7 +207,14 @@ public class ResponderUpdateCommandSourceTest {
         KafkaConsumer<String, String> c = new KafkaConsumer<>(mc);
         ConsumerRecord<String, String> cr = new ConsumerRecord<>("topic", 1, 100, key, payload);
         KafkaConsumerRecord<String, String> kcr = new KafkaConsumerRecord<>(new KafkaConsumerRecordImpl<>(cr));
-        return new IncomingKafkaRecord<String, String>(c, kcr);
+        KafkaCommitHandler kch = new KafkaCommitHandler() {
+            @Override
+            public <K, V> CompletionStage<Void> handle(IncomingKafkaRecord<K, V> record) {
+                Uni<Void> uni = AsyncResultUni.toUni(mc::commit);
+                return uni.subscribeAsCompletionStage();
+            }
+        };
+        return new IncomingKafkaRecord<String, String>(kcr, kch, null);
     }
 
     private class MockKafkaConsumer<K, V> extends KafkaConsumerImpl<K, V> {
