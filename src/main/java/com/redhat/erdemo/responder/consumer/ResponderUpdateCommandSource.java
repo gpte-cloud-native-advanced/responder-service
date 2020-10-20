@@ -13,6 +13,9 @@ import javax.inject.Inject;
 import com.redhat.erdemo.responder.model.Responder;
 import com.redhat.erdemo.responder.service.EventPublisher;
 import com.redhat.erdemo.responder.service.ResponderService;
+import com.redhat.erdemo.responder.tracing.TracingKafkaUtils;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.lang3.tuple.Triple;
@@ -35,16 +38,21 @@ public class ResponderUpdateCommandSource {
     @Inject
     EventPublisher eventPublisher;
 
+    @Inject
+    Tracer tracer;
+
     @Incoming("responder-command")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public CompletionStage<CompletionStage<Void>> onMessage(IncomingKafkaRecord<String, String> message) {
 
         return CompletableFuture.supplyAsync(() -> {
+            Span span = TracingKafkaUtils.buildChildSpan("updateResponderCommand", message, tracer);
             try {
                 acceptMessage(message.getPayload()).ifPresent(j -> processMessage(j, message.getTopic(), message.getPartition(), message.getOffset()));
             } catch (Exception e) {
                 log.error("Error processing msg " + message.getPayload(), e);
             };
+            span.finish();
             return message.ack();
         });
     }
@@ -52,6 +60,10 @@ public class ResponderUpdateCommandSource {
     private void processMessage(JsonObject json, String topic, int partition, long offset) {
         JsonObject responderJson = json.getJsonObject("body").getJsonObject("responder");
         Responder responder = fromJson(responderJson);
+
+        if (tracer.activeSpan() != null) {
+            tracer.activeSpan().setTag("responderId", responder.getId());
+        }
 
         log.debug("Processing '" + UPDATE_RESPONDER_COMMAND + "' message for responder '" + responder.getId()
                 + "' from topic:partition:offset " + topic + ":" + partition + ":" + offset +". Message: " + json.toString());

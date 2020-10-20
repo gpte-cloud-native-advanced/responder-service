@@ -18,6 +18,7 @@
     <quarkus.platform.version>1.7.5.Final</quarkus.platform.version>
     <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
     <commons-lang.version>3.9</commons-lang.version>
+    <opentracing-kafka-client.version>0.1.13</opentracing-kafka-client.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -62,6 +63,19 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-reactive-messaging-kafka</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-opentracing</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentracing.contrib</groupId>
+      <artifactId>opentracing-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentracing.contrib</groupId>
+      <artifactId>opentracing-kafka-client</artifactId>
+      <version>${opentracing-kafka-client.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>

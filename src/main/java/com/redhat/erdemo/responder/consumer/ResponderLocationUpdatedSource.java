@@ -8,6 +8,9 @@ import javax.inject.Inject;
 
 import com.redhat.erdemo.responder.model.Responder;
 import com.redhat.erdemo.responder.service.ResponderService;
+import com.redhat.erdemo.responder.tracing.TracingKafkaUtils;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -23,13 +26,18 @@ public class ResponderLocationUpdatedSource {
     @Inject
     ResponderService responderService;
 
+    @Inject
+    Tracer tracer;
+
     @Incoming("responder-update-location")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public CompletionStage<CompletionStage<Void>> onMessage(IncomingKafkaRecord<String, String> message) {
         return CompletableFuture.supplyAsync(() -> {
+            Span span = TracingKafkaUtils.buildChildSpan("responderLocationUpdate", message, tracer);
             try {
                 JsonObject json = new JsonObject(message.getPayload());
                 String responderId = json.getString("responderId");
+                span.setTag("responderId", responderId);
                 BigDecimal lat = json.getDouble("lat") != null ? BigDecimal.valueOf(json.getDouble("lat")) : null;
                 BigDecimal lon = json.getDouble("lon") != null ? BigDecimal.valueOf(json.getDouble("lon")) : null;
                 String status = json.getString("status");
@@ -44,6 +52,7 @@ public class ResponderLocationUpdatedSource {
             } catch (Exception e) {
                 log.warn("Unexpected message structure: " + message.getPayload());
             }
+            span.finish();
             return message.ack();
         });
     }

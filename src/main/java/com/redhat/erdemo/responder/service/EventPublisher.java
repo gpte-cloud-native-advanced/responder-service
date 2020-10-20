@@ -3,12 +3,15 @@ package com.redhat.erdemo.responder.service;
 import java.util.List;
 import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import com.redhat.erdemo.responder.message.Message;
 import com.redhat.erdemo.responder.message.ResponderUpdatedEvent;
 import com.redhat.erdemo.responder.message.RespondersCreatedEvent;
 import com.redhat.erdemo.responder.message.RespondersDeletedEvent;
 import com.redhat.erdemo.responder.model.Responder;
+import com.redhat.erdemo.responder.tracing.TracingKafkaUtils;
+import io.opentracing.Tracer;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
@@ -16,12 +19,19 @@ import io.vertx.core.json.Json;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class EventPublisher {
+
+    @Inject
+    Tracer tracer;
+
+    @ConfigProperty(name = "mp.messaging.outgoing.responder-event.topic")
+    String responderEventTopic;
 
     private static final Logger log = LoggerFactory.getLogger(EventPublisher.class);
 
@@ -59,10 +69,9 @@ public class EventPublisher {
     }
 
     private org.eclipse.microprofile.reactive.messaging.Message<String> toMessage(Pair<String, Message<?>> pair) {
-
-        return KafkaRecord.of(pair.getLeft(), Json.encode(pair.getRight()));
+        KafkaRecord<String, String> record = KafkaRecord.of(responderEventTopic, pair.getLeft(), Json.encode(pair.getRight()));
+        TracingKafkaUtils.buildAndInjectSpan(record, tracer);
+        return record;
     }
-
-
 
 }
